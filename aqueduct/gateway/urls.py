@@ -147,4 +147,5 @@ urlpatterns = [
         views.vector_store_file_batch_files,
         name="v1_vector_store_file_batch_files",
     ),
+    path("admin/reload-router/", views.reload_router_config, name="reload_router"),
 ]

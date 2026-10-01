@@ -1,3 +1,4 @@
+from .admin_ops import reload_router_config
 from .batches import batch, batch_cancel, batches
 from .chat_completions import chat_completions
 from .completions import completions
@@ -31,6 +32,7 @@ __all__ = [
     "get_response_input_items",
     "image_generation",
     "models",
+    "reload_router_config",
     "response",
     "speech",
     "transcriptions",
