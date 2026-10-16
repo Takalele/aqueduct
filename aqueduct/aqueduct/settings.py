@@ -96,6 +96,13 @@ OIDC_RP_CLIENT_SECRET = os.environ.get("OIDC_RP_CLIENT_SECRET")
 OIDC_OP_AUTHORIZATION_ENDPOINT = os.environ.get("OIDC_OP_AUTHORIZATION_ENDPOINT")
 OIDC_OP_TOKEN_ENDPOINT = os.environ.get("OIDC_OP_TOKEN_ENDPOINT")
 OIDC_OP_USER_ENDPOINT = os.environ.get("OIDC_OP_USER_ENDPOINT")
+# How often (in seconds) the SessionRefresh middleware forces a silent
+# re-authentication against the OIDC provider. The library default is 900
+# (15 minutes); raise it to re-authenticate less often (user/group changes
+# from the provider then propagate less frequently).
+OIDC_RENEW_ID_TOKEN_EXPIRY_SECONDS = int(
+    os.environ.get("OIDC_RENEW_ID_TOKEN_EXPIRY_SECONDS", 60 * 15)
+)
 
 LOGIN_REDIRECT_URL = "/"  # Where to redirect after successful login
 LOGOUT_REDIRECT_URL = "/login/"  # Where to redirect after successful logout

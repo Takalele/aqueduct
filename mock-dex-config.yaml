@@ -4,6 +4,8 @@ storage:
   type: memory
 web:
   http: 0.0.0.0:5556
+oauth2:
+  skipApprovalScreen: true
 staticClients:
   - id: example-app
     redirectURIs:
