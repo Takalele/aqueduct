@@ -86,7 +86,7 @@ AUTHENTICATION_BACKENDS = (
 
 # OIDC Settings
 
-OIDC_RP_SCOPES = "openid email profile"
+OIDC_RP_SCOPES = os.environ.get("OIDC_RP_SCOPES", "openid email profile")
 OIDC_RP_SIGN_ALGO = os.environ.get("OIDC_RP_SIGN_ALGO", "RS256")
 OIDC_OP_JWKS_ENDPOINT = os.environ.get("OIDC_OP_JWKS_ENDPOINT")
 
@@ -103,8 +103,8 @@ LOGIN_URL = "/login/"  # Where to redirect if user is not logged in
 
 # Aqueduct Settings ------------------------------------------------------
 
-MAX_USER_TOKENS = 3
-MAX_SERVICE_ACCOUNTS_PER_TEAM = 10
+MAX_USER_TOKENS = int(os.environ.get("MAX_USER_TOKENS", 3))
+MAX_SERVICE_ACCOUNTS_PER_TEAM = int(os.environ.get("MAX_SERVICE_ACCOUNTS_PER_TEAM", 10))
 
 MAX_USER_BATCHES = int(os.environ.get("MAX_USER_BATCHES", 10))
 MAX_TEAM_BATCHES = int(os.environ.get("MAX_TEAM_BATCHES", 25))
@@ -147,7 +147,7 @@ EXTRA_NAV_LINKS = {
     # 'About Us': 'about_page',  # Example named URL (assuming you have url(..., name='about_page'))
 }
 
-RELAY_REQUEST_TIMEOUT = 60
+RELAY_REQUEST_TIMEOUT = int(os.environ.get("AQUEDUCT_RELAY_REQUEST_TIMEOUT", 60))
 
 REQUEST_RETENTION_ENABLED = True
 REQUEST_RETENTION_DAYS = float(os.environ.get("REQUEST_RETENTION_DAYS", 7))
