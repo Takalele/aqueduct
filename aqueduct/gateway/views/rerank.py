@@ -25,9 +25,11 @@ log = logging.getLogger("aqueduct")
 
 
 class RerankRequestParams(TypedDict):
-    """Jina-style rerank request body, proxied to the upstream endpoint.
+    """Rerank request body, proxied as-is to the upstream endpoint.
 
-    Served by OpenAI-compatible backends (llama.cpp / vLLM) under ``/v1/rerank``.
+    Accepts the Jina-style and Cohere-style fields served by OpenAI-compatible
+    backends (llama.cpp / vLLM) under ``/v1/rerank``. Undeclared fields are
+    still forwarded - only the declared ones are validated.
     """
 
     model: str
@@ -57,13 +59,11 @@ async def rerank(
 ) -> RawJsonResponse:
     """Handler for POST /v1/rerank - Ranks documents by relevance to a query.
 
-    Proxies the Jina-style rerank request to the configured model's
-    OpenAI-compatible backend (``{api_base}/rerank``), forwarding ``query``
-    and ``documents`` and returning the scored ``results``.
+    Proxies the rerank request (Jina-style and Cohere-style wire
+    formats) to the configured model's OpenAI-compatible backend
+    (``{api_base}/rerank``) and returns the scored ``results`` unchanged.
     """
-    model = pydantic_model.get("model")
-    if not isinstance(model, str):
-        return error_response("Missing required parameter: model", param="model", status=400)
+    model = pydantic_model["model"]
 
     client, model_relay = oai_client_from_body(model, request)
     pydantic_model["model"] = model_relay

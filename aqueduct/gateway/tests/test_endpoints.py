@@ -7,7 +7,6 @@ from typing import ClassVar
 from unittest.mock import patch
 
 from asgiref.sync import async_to_sync
-from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.cache import cache
 from django.core.files.uploadedfile import SimpleUploadedFile
@@ -229,6 +228,65 @@ class RerankTest(GatewayIntegrationTestCase):
             self.model,
             "Request model should be the resolved model, not the alias",
         )
+
+    def test_rerank_cohere_format_passthrough(self):
+        """
+        Cohere-style requests and responses pass through unchanged. The
+        Cohere-specific rank_fields request field reaches the upstream and
+        the token counts are logged from meta.tokens.
+        """
+        if INTEGRATION_TEST_BACKEND == "vllm":
+            self.skipTest(
+                "Tests not adapted for vLLM yet... "
+                "Requires GatewayIntegrationTestCase to manage multiple servers!"
+            )
+
+        payload = {
+            "model": self.model,
+            "query": "What is Aqueduct?",
+            "documents": ["One", "Two", "Three"],
+            "rank_fields": ["title", "text"],
+        }
+        with self.mock_server.patch_external_api(
+            "rerank",
+            MockConfig(
+                response_data={
+                    "id": "rerank-cohere-1",
+                    "results": [{"index": 0, "relevance_score": 0.9, "document": {"text": "One"}}],
+                    "meta": {
+                        "api_version": {"version": "1"},
+                        "tokens": {"input_tokens": 17, "output_tokens": 0},
+                    },
+                }
+            ),
+        ):
+            response = self.client.post(
+                self.url,
+                data=json.dumps(payload),
+                headers=self.headers,
+                content_type="application/json",
+            )
+
+        self.assertEqual(
+            response.status_code,
+            200,
+            f"Expected 200 OK, got {response.status_code}: {response.content}",
+        )
+        # The response is relayed back unchanged (Cohere-style fields intact).
+        response_json = response.json()
+        self.assertEqual(response_json["id"], "rerank-cohere-1")
+        self.assertIn("meta", response_json)
+
+        # The Cohere-specific rank_fields request field reached the upstream.
+        forwarded = self.mock_server.get_last_request("rerank")
+        self.assertIsNotNone(forwarded)
+        self.assertEqual(forwarded["rank_fields"], ["title", "text"])
+
+        # Token usage is read from meta.tokens of the Cohere-style response.
+        req = Request.objects.first()
+        self.assertIsNotNone(req)
+        self.assertEqual(req.input_tokens, 17)
+        self.assertEqual(req.output_tokens, 0)
 
 
 class ChatCompletionsBase(GatewayIntegrationTestCase):
@@ -2506,17 +2564,8 @@ class ModelAliasRoutingTest(GatewayIntegrationTestCase):
         super().setUp()
         get_router_config.cache_clear()
         get_router.cache_clear()
-        if settings.TESTS_USE_MOCK_API:
-            # The rerank deployment uses the hosted_vllm provider, which resolves
-            # its api_base from this env var at request time.
-            self._rerank_env_patcher = patch.dict(
-                "os.environ", {"HOSTED_VLLM_API_BASE": self.mock_server.base_url}
-            )
-            self._rerank_env_patcher.start()
 
     def tearDown(self):
-        if settings.TESTS_USE_MOCK_API and hasattr(self, "_rerank_env_patcher"):
-            self._rerank_env_patcher.stop()
         get_router_config.cache_clear()
         get_router.cache_clear()
         super().tearDown()
